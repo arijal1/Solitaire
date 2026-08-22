@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Klondike Solitaire",
+    "slug": "klondike-solitaire",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1A5C35",
+    "splash": {
+      "backgroundColor": "#1A5C35"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1A5C35"
+      },
+      "package": "com.yourname.solitaire",
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "ios": {
+      "bundleIdentifier": "com.yourname.solitaire",
+      "supportsTablet": false
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId":     "ca-app-pub-3940256099942544~1458002511",
+          "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
+          "skAdNetworkItems": [
+            { "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork" },
+            { "SKAdNetworkIdentifier": "4fzdc2evr5.skadnetwork" }
+          ]
+        }
+      ]
+    ]
+  }
+}
