@@ -76,6 +76,12 @@ export default function GameScreen() {
     stuckState, isDailyMode, shufflesRemaining, actions,
   } = useGameState(drawMode);
 
+  // Keep the D1/D3 toggle preference in sync with the actual current game's
+  // draw mode — matters after restoring an in-progress game on app restart,
+  // so "New Game" deals the mode you're actually looking at, not whatever
+  // the toggle happened to default to.
+  useEffect(() => { setDrawMode(state.drawMode); }, [state.drawMode]);
+
   // Fire interstitial 2.5 s after win (after confetti)
   const prevWonRef = useRef(false);
   useEffect(() => {
@@ -242,7 +248,7 @@ export default function GameScreen() {
         onDrawModeChange={handleDrawMode}
         onShowStats={() => setShowStats(true)}
         onShowSettings={() => setShowSettings(true)}
-        onDailyChallenge={actions.startDailyChallenge}
+        onDailyChallenge={() => actions.startDailyChallenge(drawMode)}
         onWatchAdForHint={openRewardedForHint}
         onWatchAdForUndo={openRewardedForUndo}
         onShowRemoveAds={() => setRemoveAdsModal(true)}

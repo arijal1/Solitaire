@@ -309,4 +309,38 @@ export function autoCompleteStep(state) {
   }
 }
 
+// ─────────────────────────────────────────────
+//  SHUFFLE (UNSTUCK) — limited escape hatch
+// ─────────────────────────────────────────────
+export const MAX_SHUFFLES_PER_GAME = 3;
+
+/**
+ * Reshuffle all cards not yet locked away (face-up tableau cards + waste +
+ * stock) back into a fresh stock. Capped per game via shuffleCount so it
+ * can't be used as a free, unlimited "keep reshuffling until it's winnable"
+ * exploit — returns state unchanged once the cap is hit.
+ */
+export function shuffleUnstuck(state) {
+  if (state.shuffleCount >= MAX_SHUFFLES_PER_GAME) return state;
+
+  const allCards = [];
+  for (const col of state.tableau) allCards.push(...col.filter(c => c.faceUp));
+  allCards.push(...state.waste);
+  allCards.push(...state.stock);
+
+  const shuffled = shuffle(allCards);
+  const newStock = shuffled.map(c => ({ ...c, faceUp: false }));
+  const newTableau = state.tableau.map(col => col.filter(c => !c.faceUp));
+
+  return {
+    ...state,
+    tableau: newTableau,
+    stock: newStock,
+    waste: [],
+    moves: state.moves + 1,
+    score: Math.max(0, state.score - 20),
+    shuffleCount: state.shuffleCount + 1,
+  };
+}
+
 // Hint engine lives in hintEngine.js — import directly from there

@@ -7,7 +7,8 @@
     "android":        "expo start --android",
     "ios":            "expo start --ios",
     "build:android":  "eas build --platform android",
-    "build:ios":      "eas build --platform ios"
+    "build:ios":      "eas build --platform ios",
+    "test":           "jest"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.23.1",
@@ -18,7 +19,16 @@
     "react-native-google-mobile-ads":    "^14.7.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.0"
+    "@babel/core": "^7.24.0",
+    "jest-expo": "~51.0.4"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/android/",
+      "/ios/"
+    ]
   },
   "private": true
 }

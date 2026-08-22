@@ -10,14 +10,16 @@ import {
   autoCompleteStep,
   canAutoComplete,
   autoMoveToFoundation,
+  shuffleUnstuck as shuffleUnstuckPure,
+  MAX_SHUFFLES_PER_GAME,
 } from '../engine/gameEngine';
-import { shuffle } from '../engine/cards';
 import { getSmartHint, detectStuck, isGenuinelyStuck } from '../engine/hintEngine';
 import { getDailyDeck, getTodayKey, isDailyCompleted, recordGameResult } from '../engine/stats';
+import { loadJSON, saveJSON } from '../utils/persistence';
 
 const MAX_HISTORY = 100;
 const STUCK_CHECK_DELAY = 3000; // ms after last move before checking stuck
-export const MAX_SHUFFLES_PER_GAME = 3; // caps the "stuck? reshuffle" escape hatch
+const GAME_KEY = 'solitaire.game.v1'; // in-progress game snapshot
 
 // Record an abandoned (not won, at least one move made) game as a loss so
 // win-rate / streak stats reflect reality instead of only ever seeing wins.
@@ -47,6 +49,35 @@ export function useGameState(initialDrawMode = 1) {
   const autoCompleteTimer = useRef(null);
   const stuckTimer        = useRef(null);
   const gameRecordedRef   = useRef(false);
+  const [gameHydrated, setGameHydrated] = useState(false);
+
+  // ── Restore an in-progress game across app restarts ─────
+  // (previously: backgrounding/killing the app lost the whole board, even
+  // though stats/theme/purchases now survive restarts)
+  useEffect(() => {
+    let cancelled = false;
+    loadJSON(GAME_KEY, null).then((saved) => {
+      if (cancelled) return;
+      if (saved?.state && !saved.state.isWon) {
+        historyRef.current = [];
+        gameRecordedRef.current = false;
+        setState(saved.state);
+        setIsDailyMode(!!saved.isDailyMode);
+        setDailyKey(saved.dailyKey ?? null);
+      }
+      setGameHydrated(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Persist a snapshot after every change, once restore has had its chance
+  // to run first (otherwise the freshly-dealt initial state would overwrite
+  // the saved game in storage before we ever get to read it back).
+  useEffect(() => {
+    if (!gameHydrated) return;
+    if (state.isWon) { saveJSON(GAME_KEY, null); return; }
+    saveJSON(GAME_KEY, { state, isDailyMode, dailyKey });
+  }, [gameHydrated, state, isDailyMode, dailyKey]);
 
   // ── Record win/loss once ────────────────────────────────
   useEffect(() => {
@@ -174,35 +205,10 @@ export function useGameState(initialDrawMode = 1) {
   }, []);
 
   // ── Shuffle (unstuck) ───────────────────────────────────
-  // A limited escape hatch for a genuinely dead deal — capped per game so it
-  // can't be used as a free, infinite "keep reshuffling until it's winnable"
-  // exploit (previously: once score hit 0 the -20 penalty became a no-op,
-  // making it free forever).
+  // Pure transform lives in gameEngine.js (shuffleUnstuck) so it's directly
+  // unit-testable; this just wires it into React state.
   const shuffleUnstuck = useCallback(() => {
-    setState(current => {
-      if (current.shuffleCount >= MAX_SHUFFLES_PER_GAME) return current;
-
-      // Collect all remaining face-up tableau cards + waste + stock, re-shuffle
-      const allCards = [];
-      for (const col of current.tableau) allCards.push(...col.filter(c => c.faceUp));
-      allCards.push(...current.waste);
-      allCards.push(...current.stock);
-
-      const shuffled = shuffle(allCards); // proper Fisher-Yates, not a biased sort
-      const newStock = shuffled.map(c => ({ ...c, faceUp: false }));
-
-      const newTableau = current.tableau.map(col => col.filter(c => !c.faceUp));
-
-      return {
-        ...current,
-        tableau: newTableau,
-        stock: newStock,
-        waste: [],
-        moves: current.moves + 1,
-        score: Math.max(0, current.score - 20),
-        shuffleCount: current.shuffleCount + 1,
-      };
-    });
+    setState(shuffleUnstuckPure);
     setStuckState('ok');
     setHint(null);
   }, []);
